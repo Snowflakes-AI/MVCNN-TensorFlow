@@ -2,7 +2,7 @@ import cv2
 import random
 import numpy as np
 import time
-import Queue
+import queue
 import threading
 import globals as g_
 from concurrent.futures import ThreadPoolExecutor
@@ -43,8 +43,8 @@ class Shape:
     def crop_center(self, size=(227,227)):
         w, h = self.views.shape[1], self.views.shape[2]
         wn, hn = size
-        left = w / 2 - wn / 2
-        top = h / 2 - hn / 2
+        left = int(w / 2 - wn / 2)
+        top = int(h / 2 - hn / 2)
         right = left + wn
         bottom = top + hn
         self.views = self.views[:, left:right, top:bottom, :]
@@ -57,13 +57,13 @@ class Dataset:
         self.shuffled = False
         self.subtract_mean = subtract_mean
         self.V = V
-        print 'dataset inited'
-        print '  total size:', len(listfiles)
+        print('dataset inited')
+        print('  total size: %d' % len(listfiles))
 
     def shuffle(self):
-        z = zip(self.listfiles, self.labels)
+        z = list(zip(self.listfiles, self.labels))
         random.shuffle(z)
-        self.listfiles, self.labels = [list(l) for l in zip(*z)]
+        self.listfiles, self.labels = [list(l) for l in list(zip(*z))]
         self.shuffled = True
 
 
@@ -78,7 +78,7 @@ class Dataset:
 
     def _batches(self, listfiles, batch_size):
         n = len(listfiles)
-        for i in xrange(0, n, batch_size):
+        for i in range(0, n, batch_size):
             starttime = time.time()
 
             lists = listfiles[i : i+batch_size]
@@ -93,7 +93,7 @@ class Dataset:
                 x[j, ...] = s.views
                 y[j] = s.label
 
-            print 'load batch time:', time.time()-starttime, 'sec'
+            print('load batch time:', time.time()-starttime, 'sec')
             yield x, y
 
     def _load_shape(self, listfile):
@@ -121,7 +121,7 @@ class Dataset:
             q.put(None)
 
         # This must be larger than twice the batch_size
-        q = Queue.Queue(maxsize=g_.INPUT_QUEUE_SIZE)
+        q = queue.Queue(maxsize=g_.INPUT_QUEUE_SIZE)
 
         # background loading Shapes process
         p = threading.Thread(target=load, args=(listfiles, q, batch_size))
@@ -133,7 +133,7 @@ class Dataset:
         x = np.zeros((batch_size, self.V, 227, 227, 3))
         y = np.zeros(batch_size)
 
-        for i in xrange(0, n, batch_size):
+        for i in range(0, n, batch_size):
             starttime = time.time()
 
             item = q.get()

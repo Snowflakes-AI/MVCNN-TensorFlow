@@ -1,4 +1,4 @@
-#coding=utf-8
+# encoding: utf-8
 import tensorflow as tf
 import re
 import numpy as np
@@ -81,28 +81,28 @@ def _conv(name, in_ ,ksize, strides=[1,1,1,1], padding=DEFAULT_PADDING, group=1,
         if group == 1:
             kernel = _variable_with_weight_decay('weights', shape=ksize, wd=0.0)
             conv = convolve(in_, kernel)
-	else:
+        else:
             ksize[2] /= group
             kernel = _variable_with_weight_decay('weights', shape=ksize, wd=0.0)
-	    input_groups = tf.split(in_, group, 3)
-	    kernel_groups = tf.split(kernel, group, 3)
-	    output_groups = [convolve(i, k) for i, k in zip(input_groups, kernel_groups)]
-	    # Concatenate the groups
-	    conv = tf.concat(output_groups, 3)
+            input_groups = tf.split(in_, group, 3)
+            kernel_groups = tf.split(kernel, group, 3)
+            output_groups = [convolve(i, k) for i, k in list(zip(input_groups, kernel_groups))]
+            # Concatenate the groups
+            conv = tf.concat(output_groups, 3)
 
         biases = _variable_on_cpu('biases', [n_kern], tf.constant_initializer(0.0))
         conv = tf.nn.bias_add(conv, biases)
         conv = tf.nn.relu(conv, name=scope.name)
         _activation_summary(conv)
 
-    print name, conv.get_shape().as_list()
+    print(name, conv.get_shape().as_list())
     return conv
 
 def _maxpool(name, in_, ksize, strides, padding=DEFAULT_PADDING):
     pool = tf.nn.max_pool(in_, ksize=ksize, strides=strides,
                           padding=padding, name=name)
 
-    print name, pool.get_shape().as_list()
+    print(name, pool.get_shape().as_list())
     return pool
 
 def _fc(name, in_, outsize, dropout=1.0, reuse=False):
@@ -119,7 +119,7 @@ def _fc(name, in_, outsize, dropout=1.0, reuse=False):
 
     
 
-    print name, fc.get_shape().as_list()
+    print(name, fc.get_shape().as_list())
     return fc
     
 
@@ -134,7 +134,7 @@ def inference_multiview(views, n_classes, keep_prob):
     views = tf.transpose(views, perm=[1, 0, 2, 3, 4])
     
     view_pool = []
-    for i in xrange(n_views):
+    for i in range(n_views):
         # set reuse True for i > 0, for weight-sharing
         reuse = (i != 0)
         view = tf.gather(views, i) # NxWxHxC
@@ -173,7 +173,7 @@ def inference_multiview(views, n_classes, keep_prob):
 def load_alexnet_to_mvcnn(sess, caffetf_modelpath):
     """ caffemodel: np.array, """
 
-    caffemodel = np.load(caffetf_modelpath)
+    caffemodel = np.load(caffetf_modelpath, encoding = 'latin1')
     data_dict = caffemodel.item()
     for l in ['conv1', 'conv2', 'conv3', 'conv4', 'conv5', 'fc6', 'fc7']:
         name = l
@@ -184,14 +184,14 @@ def _load_param(sess, name, layer_data):
     w, b = layer_data
 
     with tf.variable_scope(name, reuse=True):
-        for subkey, data in zip(('weights', 'biases'), (w, b)):
-            print 'loading ', name, subkey
+        for subkey, data in list(zip(('weights', 'biases'), (w, b))):
+            print('loading ', name, subkey)
 
             try:
                 var = tf.get_variable(subkey)
                 sess.run(var.assign(data))
             except ValueError as e: 
-                print 'varirable loading failed:', subkey, '(%s)' % str(e)
+                print('varirable loading failed:', subkey, '(%s)' % str(e))
 
 
 def _view_pool(view_features, name):
@@ -199,7 +199,7 @@ def _view_pool(view_features, name):
     for v in view_features[1:]:
         v = tf.expand_dims(v, 0)
         vp = tf.concat([vp, v], 0)
-    print 'vp before reducing:', vp.get_shape().as_list()
+    print('vp before reducing:', vp.get_shape().as_list())
     vp = tf.reduce_max(vp, [0], name=name)
     return vp 
 
@@ -231,7 +231,7 @@ def _add_loss_summaries(total_loss):
     # Compute the moving average of all individual losses and the total loss.
     loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
     losses = tf.get_collection('losses')
-    print 'losses:', losses
+    print('losses:', losses)
     loss_averages_op = loss_averages.apply(losses + [total_loss])
     # Attach a scalar summary to all individual losses and the total loss; do the
     # same for the averaged version of the losses.

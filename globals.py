@@ -7,6 +7,7 @@ NUM_VIEWS = 12
 TRAIN_LOL = './data/view/train_lists.txt'
 VAL_LOL = './data/view/val_lists.txt'
 TEST_LOL = './data/view/test_lists.txt'
+NUM_GROUPS = 2
 
 
 """
@@ -16,7 +17,7 @@ BATCH_SIZE = 16
 
 # this must be more than twice the BATCH_SIZE
 INPUT_QUEUE_SIZE = 4 * BATCH_SIZE
-
+VIEWPOOL = 'max'
 
 """
 constants for training the model

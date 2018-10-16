@@ -134,34 +134,62 @@ def inference_multiview(views, n_classes, keep_prob):
     views = tf.transpose(views, perm=[1, 0, 2, 3, 4])
     
     view_pool = []
+    group_views = n_views // g_.NUM_GROUPS
     for i in range(n_views):
-        # set reuse True for i > 0, for weight-sharing
-        reuse = (i != 0)
         view = tf.gather(views, i) # NxWxHxC
 
-        conv1 = _conv('conv1', view, [11, 11, 3, 96], [1, 4, 4, 1], 'VALID', reuse=reuse)
-        lrn1 = None
-        pool1 = _maxpool('pool1', conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+        if g_.NUM_GROUPS == 1:
+            # set reuse True for i > 0, for weight-sharing
+            reuse = (i != 0)
 
-        conv2 = _conv('conv2', pool1, [5, 5, 96, 256], group=2, reuse=reuse)
-        lrn2 = None
-        pool2 = _maxpool('pool2', conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
-        
-        conv3 = _conv('conv3', pool2, [3, 3, 256, 384], reuse=reuse)
-        conv4 = _conv('conv4', conv3, [3, 3, 384, 384], group=2, reuse=reuse)
-        conv5 = _conv('conv5', conv4, [3, 3, 384, 256], group=2, reuse=reuse)
+            conv1 = _conv('conv1', view, [11, 11, 3, 96], [1, 4, 4, 1], 'VALID', reuse=reuse)
+            lrn1 = None
+            pool1 = _maxpool('pool1', conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
 
-        pool5 = _maxpool('pool5', conv5, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+            conv2 = _conv('conv2', pool1, [5, 5, 96, 256], group=2, reuse=reuse)
+            lrn2 = None
+            pool2 = _maxpool('pool2', conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
         
+            conv3 = _conv('conv3', pool2, [3, 3, 256, 384], reuse=reuse)
+            conv4 = _conv('conv4', conv3, [3, 3, 384, 384], group=2, reuse=reuse)
+            conv5 = _conv('conv5', conv4, [3, 3, 384, 256], group=2, reuse=reuse)
+
+            pool5 = _maxpool('pool5', conv5, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+
+        else:
+            ind = i // group_views
+            reuse = ((i % group_views) != 0)
+
+            conv1 = _conv('vg%d_conv1'%ind, view, [11, 11, 3, 96], [1, 4, 4, 1], 'VALID', reuse=reuse)
+            lrn1 = None
+            pool1 = _maxpool('vg%d_pool1'%ind, conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+
+            conv2 = _conv('vg%d_conv2'%ind, pool1, [5, 5, 96, 256], group=2, reuse=reuse)
+            lrn2 = None
+            pool2 = _maxpool('vg%d_pool2'%ind, conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+        
+            conv3 = _conv('vg%d_conv3'%ind, pool2, [3, 3, 256, 384], reuse=reuse)
+            conv4 = _conv('vg%d_conv4'%ind, conv3, [3, 3, 384, 384], group=2, reuse=reuse)
+            conv5 = _conv('vg%d_conv5'%ind, conv4, [3, 3, 384, 256], group=2, reuse=reuse)
+
+            pool5 = _maxpool('vg%d_pool5'%ind, conv5, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
         dim = np.prod(pool5.get_shape().as_list()[1:])
         reshape = tf.reshape(pool5, [-1, dim])
         
         view_pool.append(reshape)
 
-
-    pool5_vp = _view_pool(view_pool, 'pool5_vp')
-    print 'pool5_vp', pool5_vp.get_shape().as_list()
-
+    try:
+        if g_.VIEWPOOL == 'max':
+            pool5_vp = _view_pool(view_pool, 'pool5_vp')
+            print('pool5_vp', pool5_vp.get_shape().as_list())
+        elif g_.VIEWPOOL == 'avg':
+            pool5_vp = _view_avgpool(view_pool, 'pool5_avgvp')
+            print('pool5_avgvp', pool5_vp.get_shape().as_list())
+        else:
+            raise ValueError
+    except ValueError:
+        print('Undefined option in view pooling')
+        raise
 
     fc6 = _fc('fc6', pool5_vp, 4096, dropout=keep_prob)
     fc7 = _fc('fc7', fc6, 4096, dropout=keep_prob)
@@ -175,7 +203,16 @@ def load_alexnet_to_mvcnn(sess, caffetf_modelpath):
 
     caffemodel = np.load(caffetf_modelpath, encoding = 'latin1')
     data_dict = caffemodel.item()
-    for l in ['conv1', 'conv2', 'conv3', 'conv4', 'conv5', 'fc6', 'fc7']:
+    for l in ['conv1', 'conv2', 'conv3', 'conv4', 'conv5']:
+        if g_.NUM_GROUPS == 1:
+            name = l
+            _load_param(sess, name, data_dict[l])
+        else:
+            for i in range(g_.NUM_GROUPS):
+                name = 'vg%d_'%i + l
+                _load_param(sess, name, data_dict[l])
+
+    for l in ['fc6', 'fc7']:
         name = l
         _load_param(sess, name, data_dict[l])
     
@@ -203,6 +240,14 @@ def _view_pool(view_features, name):
     vp = tf.reduce_max(vp, [0], name=name)
     return vp 
 
+def _view_avgpool(view_features, name):
+    vp = tf.expand_dims(view_features[0], 0) # eg. [100] -> [1, 100]
+    for v in view_features[1:]:
+        v = tf.expand_dims(v, 0)
+        vp = tf.concat([vp, v], 0)
+    print('avg vp before reducing:', vp.get_shape().as_list())
+    vp = tf.reduce_mean(vp, [0], name=name)
+    return vp 
 
 def loss(fc8, labels):
     l = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=fc8)

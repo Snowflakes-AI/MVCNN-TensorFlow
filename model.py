@@ -167,12 +167,12 @@ def inference_multiview(views, n_classes, keep_prob):
             reuse = ((i % group_views) != 0)
 
             conv1 = _conv('vg%d_conv1'%ind, view, [11, 11, 3, 96], [1, 4, 4, 1], 'VALID', reuse=reuse)
-            lrn1 = None
-            pool1 = _maxpool('vg%d_pool1'%ind, conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+            lrn1 = _lrn('vg%d_lrn1'%ind, conv1)
+            pool1 = _maxpool('vg%d_pool1'%ind, lrn1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
 
             conv2 = _conv('vg%d_conv2'%ind, pool1, [5, 5, 96, 256], group=2, reuse=reuse)
-            lrn2 = None
-            pool2 = _maxpool('vg%d_pool2'%ind, conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+            lrn2 = _lrn('vg%d_lrn2'%ind, conv2)
+            pool2 = _maxpool('vg%d_pool2'%ind, lrn2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
         
             conv3 = _conv('vg%d_conv3'%ind, pool2, [3, 3, 256, 384], reuse=reuse)
             conv4 = _conv('vg%d_conv4'%ind, conv3, [3, 3, 384, 384], group=2, reuse=reuse)

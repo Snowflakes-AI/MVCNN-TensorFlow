@@ -98,6 +98,12 @@ def _conv(name, in_ ,ksize, strides=[1,1,1,1], padding=DEFAULT_PADDING, group=1,
     print(name, conv.get_shape().as_list())
     return conv
 
+def _lrn(name, in_, bias=2, alpha=0.0001, beta=0.75, depth=5):
+    lrn = tf.nn.lrn(in_, depth_radius=depth,
+                    bias=bias, alpha=alpha, beta=beta)
+    print(name, lrn.get_shape().as_list())
+    return lrn
+
 def _maxpool(name, in_, ksize, strides, padding=DEFAULT_PADDING):
     pool = tf.nn.max_pool(in_, ksize=ksize, strides=strides,
                           padding=padding, name=name)
@@ -143,12 +149,12 @@ def inference_multiview(views, n_classes, keep_prob):
             reuse = (i != 0)
 
             conv1 = _conv('conv1', view, [11, 11, 3, 96], [1, 4, 4, 1], 'VALID', reuse=reuse)
-            lrn1 = None
-            pool1 = _maxpool('pool1', conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+            lrn1 = _lrn('lrn1', conv1)
+            pool1 = _maxpool('pool1', lrn1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
 
             conv2 = _conv('conv2', pool1, [5, 5, 96, 256], group=2, reuse=reuse)
-            lrn2 = None
-            pool2 = _maxpool('pool2', conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+            lrn2 = _lrn('lrn2', conv2)
+            pool2 = _maxpool('pool2', lrn2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
         
             conv3 = _conv('conv3', pool2, [3, 3, 256, 384], reuse=reuse)
             conv4 = _conv('conv4', conv3, [3, 3, 384, 384], group=2, reuse=reuse)

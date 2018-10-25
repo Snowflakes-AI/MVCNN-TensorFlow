@@ -47,7 +47,7 @@ def test(dataset, ckptfile):
         y_ = tf.placeholder('int64', shape=(None), name='y')
         keep_prob_ = tf.placeholder('float32')
 
-        fc8 = model.inference_multiview(view_, g_.NUM_CLASSES, keep_prob_)
+        fc8, aux_fcs = model.inference_multiview(view_, g_.NUM_CLASSES, keep_prob_)
         loss = model.loss(fc8, y_)
         train_op = model.train(loss, global_step, data_size)
         prediction = model.classify(fc8)

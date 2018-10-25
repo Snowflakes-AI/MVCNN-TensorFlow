@@ -111,6 +111,13 @@ def _maxpool(name, in_, ksize, strides, padding=DEFAULT_PADDING):
     print(name, pool.get_shape().as_list())
     return pool
 
+def _avgpool(name, in_, ksize, strides, padding=DEFAULT_PADDING):
+    pool = tf.nn.avg_pool(in_, ksize=ksize, strides=strides,
+                          padding=padding, name=name)
+    
+    print(name, pool.get_shape().as_list())
+    return pool
+
 def _fc(name, in_, outsize, dropout=1.0, reuse=False):
     with tf.variable_scope(name, reuse=reuse) as scope:
         # Move everything into depth so we can perform a single matrix multiply.
@@ -128,6 +135,13 @@ def _fc(name, in_, outsize, dropout=1.0, reuse=False):
     print(name, fc.get_shape().as_list())
     return fc
     
+def _softmax_likelihood(name, in_, eps=1e-5):
+    prob = tf.nn.softmax(in_)
+    logy = -tf.log(tf.add(prob, eps))
+    likelihood = tf.reciprocal(tf.reduce_sum(tf.multiply(prob, logy), -1, keepdims=True))
+
+    print(name, likelihood.get_shape().as_list())
+    return likelihood
 
 
 def inference_multiview(views, n_classes, keep_prob):
@@ -140,6 +154,8 @@ def inference_multiview(views, n_classes, keep_prob):
     views = tf.transpose(views, perm=[1, 0, 2, 3, 4])
     
     view_pool = []
+    view_fc = []
+    view_likelihood = []
     group_views = n_views // g_.NUM_GROUPS
     for i in range(n_views):
         view = tf.gather(views, i) # NxWxHxC
@@ -162,6 +178,7 @@ def inference_multiview(views, n_classes, keep_prob):
 
             pool5 = _maxpool('pool5', conv5, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
 
+            ind = 0
         else:
             ind = i // group_views
             reuse = ((i % group_views) != 0)
@@ -179,6 +196,21 @@ def inference_multiview(views, n_classes, keep_prob):
             conv5 = _conv('vg%d_conv5'%ind, conv4, [3, 3, 384, 256], group=2, reuse=reuse)
 
             pool5 = _maxpool('vg%d_pool5'%ind, conv5, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID')
+
+        if g_.VIEWPOOL == 'wavg':
+            #cam_conv0 = tf.stop_gradient(conv5)
+            #cam_conv1 = _conv('vg%02dcam_conv1'%ind, cam_conv0, [3, 3, 256, 512], reuse=reuse)
+            cam_conv1 = _conv('vg%02dcam_conv1'%ind, conv5, [3, 3, 256, 512], reuse=reuse)
+            cam_conv2 = _conv('vg%02dcam_conv2'%ind, cam_conv1, [3, 3, 512, 512], reuse=reuse)
+            cam_pool = _avgpool('vg%02dcam_pool'%ind, cam_conv2, [1, 11, 11, 1], strides=[1, 1, 1, 1], padding='VALID')
+            dim = np.prod(cam_pool.get_shape().as_list()[1:])
+            cam_fc = _fc('vg%02dcam_fc'%ind, tf.reshape(cam_pool, [-1, dim]), n_classes, dropout=keep_prob, reuse=reuse)
+            cam_likelihood = _softmax_likelihood('vp%02dcam_softmax_likelihood'%i, cam_fc)
+
+            dim = np.prod(cam_fc.get_shape().as_list()[1:])
+            view_fc.append(tf.reshape(cam_fc, [-1, dim]))
+            view_likelihood.append(tf.reshape(cam_likelihood, [-1, 1]))
+      
         dim = np.prod(pool5.get_shape().as_list()[1:])
         reshape = tf.reshape(pool5, [-1, dim])
         
@@ -191,6 +223,9 @@ def inference_multiview(views, n_classes, keep_prob):
         elif g_.VIEWPOOL == 'avg':
             pool5_vp = _view_avgpool(view_pool, 'pool5_avgvp')
             print('pool5_avgvp', pool5_vp.get_shape().as_list())
+        elif g_.VIEWPOOL == 'wavg':
+            pool5_vp = _view_wavgpool(view_pool, view_likelihood, 'pool5_wavgvp')
+            print('pool5_wavgvp', pool5_vp.get_shape().as_list())
         else:
             raise ValueError
     except ValueError:
@@ -201,7 +236,7 @@ def inference_multiview(views, n_classes, keep_prob):
     fc7 = _fc('fc7', fc6, 4096, dropout=keep_prob)
     fc8 = _fc('fc8', fc7, n_classes)
 
-    return fc8 
+    return fc8, view_fc
     
 
 def load_alexnet_to_mvcnn(sess, caffetf_modelpath):
@@ -255,13 +290,33 @@ def _view_avgpool(view_features, name):
     vp = tf.reduce_mean(vp, [0], name=name)
     return vp 
 
-def loss(fc8, labels):
+def _view_wavgpool(view_features, weights, name):
+    wp = tf.expand_dims(weights[0], 0)
+    for vw in weights[1:]:
+        vw = tf.expand_dims(vw, 0)
+        wp = tf.concat([wp, vw], 0)
+    print('wavg wp before reducing:', wp.get_shape().as_list())
+    wp = tf.reciprocal(tf.reduce_sum(wp, [0]))
+
+    for ind, v in enumerate(view_features):
+        w = tf.reshape(tf.multiply(weights[ind], wp), [-1])
+        #w = tf.Print(w, [w], 'view %d: ' % (ind))
+        v = tf.expand_dims(tf.multiply(v, w[:, tf.newaxis]), 0) # eg. [100] -> [1, 100]
+        if ind == 0:
+            vp = v
+        else:
+            vp = tf.concat([vp, v], 0)
+    print('wavg vp before reducing:', vp.get_shape().as_list())
+    vp = tf.reduce_sum(vp, [0], name=name)
+    return vp
+
+def loss(fc8, labels, name='total_loss'):
     l = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=fc8)
     l = tf.reduce_mean(l)
     
     tf.add_to_collection('losses', l)
 
-    return tf.add_n(tf.get_collection('losses'), name='total_loss')
+    return tf.add_n(tf.get_collection('losses'), name=name)
 
 
 def classify(fc8):

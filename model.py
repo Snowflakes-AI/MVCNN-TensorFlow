@@ -11,7 +11,8 @@ tf.app.flags.DEFINE_integer('batch_size', g_.BATCH_SIZE,
                             """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_float('learning_rate', g_.INIT_LEARNING_RATE,
                             """Initial learning rate.""")
-
+tf.app.flags.DEFINE_float('clip_gradients', g_.INIT_GRADIENT_CLIPPING_THRESHOLD,
+                            """Initial gradient clipping threshold.""")
 
 # Constants describing the training process.
 MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.
@@ -365,7 +366,8 @@ def train(total_loss, global_step, data_size):
     with tf.control_dependencies([loss_averages_op]):
         opt = tf.train.AdamOptimizer(lr)
         grads = opt.compute_gradients(total_loss)
-
+        if FLAGS.clip_gradients > 0.0:
+            grads = [(tf.clip_by_norm(grad, FLAGS.clip_gradients), var) for grad, var in grads]
     
     # apply gradients
     apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)

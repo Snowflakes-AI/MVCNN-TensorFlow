@@ -23,6 +23,7 @@ VIEWPOOL = 'max'
 constants for training the model
 """
 INIT_LEARNING_RATE = 0.0001
+INIT_GRADIENT_CLIPPING_THRESHOLD = 0.0
 
 # sample how many shapes for validation
 # this affects the validation time

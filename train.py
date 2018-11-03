@@ -3,7 +3,7 @@ import os,sys,inspect
 import tensorflow as tf
 import time
 from datetime import datetime
-import os
+import re
 import hickle as hkl
 import os.path as osp
 from glob import glob
@@ -43,7 +43,8 @@ def train(dataset_train, dataset_val, ckptfile='', caffemodel=''):
     data_size = dataset_train.size()
     print('training size:', data_size)
 
-
+    best_acc = best_step = 0
+    checkpoint_path = osp.join(FLAGS.train_dir, 'model.ckpt')
     with tf.Graph().as_default():
         startstep = 0 if not is_finetune else int(ckptfile.split('-')[-1])
         global_step = tf.Variable(startstep, trainable=False)
@@ -169,6 +170,15 @@ def train(dataset_train, dataset_val, ckptfile='', caffemodel=''):
                     summary_writer.add_summary(val_acc_summ, step)
                     summary_writer.flush()
 
+                    if acc > best_acc:
+                        if best_step % g_.SAVE_PERIOD != 0:
+                            rmlist = [f for f in os.listdir(FLAGS.train_dir) if re.match('.*%d\..*'%best_step, f)]
+                            for f in rmlist:
+                                os.remove(osp.join(FLAGS.train_dir, f))
+                        if step % g_.SAVE_PERIOD != 0:
+                            saver.save(sess, checkpoint_path, global_step=step)
+                        best_step = step
+                        best_acc = acc
 
                 if step % 100 == 0:
                     # print 'running summary'
@@ -177,9 +187,9 @@ def train(dataset_train, dataset_val, ckptfile='', caffemodel=''):
                     summary_writer.flush()
 
                 if step % g_.SAVE_PERIOD == 0 and step > startstep:
-                    checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
                     saver.save(sess, checkpoint_path, global_step=step)
 
+        print('best acc: %f (step=%d)' % (best_acc*100., best_step))
 
 
 def main(argv):

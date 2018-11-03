@@ -13,7 +13,7 @@ import math
 from input import Dataset
 import globals as g_
 
-
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)

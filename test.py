@@ -43,7 +43,7 @@ def test(dataset, ckptfile):
         startstep = 0
         global_step = tf.Variable(startstep, trainable=False)
 
-        view_ = tf.placeholder('float32', shape=(None, V, 227, 227, 3), name='im0')
+        view_ = tf.placeholder('float32', shape=(None, V, g_.IMG_W, g_.IMG_H, 3), name='im0')
         y_ = tf.placeholder('int64', shape=(None), name='y')
         keep_prob_ = tf.placeholder('float32')
 

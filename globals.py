@@ -18,12 +18,14 @@ BATCH_SIZE = 16
 # this must be more than twice the BATCH_SIZE
 INPUT_QUEUE_SIZE = 4 * BATCH_SIZE
 VIEWPOOL = 'max'
+IMG_W = IMG_H = 227
 
 """
 constants for training the model
 """
 INIT_LEARNING_RATE = 0.0001
 INIT_GRADIENT_CLIPPING_THRESHOLD = 0.0
+CENTER_CROP = False
 
 # sample how many shapes for validation
 # this affects the validation time

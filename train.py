@@ -50,7 +50,7 @@ def train(dataset_train, dataset_val, ckptfile='', caffemodel=''):
         global_step = tf.Variable(startstep, trainable=False)
          
         # placeholders for graph input
-        view_ = tf.placeholder('float32', shape=(None, V, 227, 227, 3), name='im0')
+        view_ = tf.placeholder('float32', shape=(None, V, g_.IMG_W, g_.IMG_H, 3), name='im0')
         y_ = tf.placeholder('int64', shape=(None), name='y')
         keep_prob_ = tf.placeholder('float32')
 
@@ -115,7 +115,7 @@ def train(dataset_train, dataset_val, ckptfile='', caffemodel=''):
         for epoch in range(100):
             print('epoch:', epoch)
 
-            for batch_x, batch_y in dataset_train.batches(batch_size):
+            for batch_x, batch_y in dataset_train.batches(batch_size, center_crop=g_.CENTER_CROP):
                 step += 1
 
                 start_time = time.time()

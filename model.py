@@ -11,8 +11,8 @@ tf.app.flags.DEFINE_integer('batch_size', g_.BATCH_SIZE,
                             """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_float('learning_rate', g_.INIT_LEARNING_RATE,
                             """Initial learning rate.""")
-tf.app.flags.DEFINE_float('clip_gradients', g_.INIT_GRADIENT_CLIPPING_THRESHOLD,
-                            """Initial gradient clipping threshold.""")
+tf.app.flags.DEFINE_float('clip_gradients', g_.GRADIENT_CLIPPING_THRESHOLD,
+                            """Gradient clipping threshold.""")
 
 # Constants describing the training process.
 MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.

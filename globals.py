@@ -24,7 +24,7 @@ IMG_W = IMG_H = 227
 constants for training the model
 """
 INIT_LEARNING_RATE = 0.0001
-INIT_GRADIENT_CLIPPING_THRESHOLD = 0.0
+GRADIENT_CLIPPING_THRESHOLD = 0.0
 CENTER_CROP = False
 
 # sample how many shapes for validation

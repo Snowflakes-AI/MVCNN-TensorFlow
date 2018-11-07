@@ -18,6 +18,7 @@ BATCH_SIZE = 16
 # this must be more than twice the BATCH_SIZE
 INPUT_QUEUE_SIZE = 4 * BATCH_SIZE
 VIEWPOOL = 'max'
+DEBUG = False
 IMG_W = IMG_H = 227
 
 """

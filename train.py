@@ -101,7 +101,7 @@ def train(dataset_train, dataset_val, ckptfile='', caffemodel=''):
         elif caffemodel:
             # load caffemodel generated with caffe-tensorflow
             sess.run(init_op)
-            model.load_alexnet_to_mvcnn(sess, caffemodel)
+            model.load_googlenet_to_mvcnn(sess, caffemodel)
             print('loaded pretrained caffemodel:', caffemodel)
         else:
             # from scratch
@@ -121,7 +121,7 @@ def train(dataset_train, dataset_val, ckptfile='', caffemodel=''):
                 start_time = time.time()
                 feed_dict = {view_: batch_x,
                              y_ : batch_y,
-                             keep_prob_: 0.5 }
+                             keep_prob_: 0.6 }
 
                 _, pred, loss_value = sess.run(
                         [train_op, prediction,  loss,],

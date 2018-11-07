@@ -24,8 +24,12 @@ class Shape:
     def _load_views(self, view_files, V):
         views = []
         for f in view_files:
-            im = cv2.imread(f)
-            im = cv2.resize(im, (W, H))
+            try:
+                im = cv2.imread(f)
+                im = cv2.resize(im, (W, H))
+            except cv2.error:
+                print('im error: %s', f)
+                raise
             # im = cv2.cvtColor(im, cv2.COLOR_GRAY2BGR) #BGR!!
             assert im.shape == (W,H,3), 'BGR!'
             im = im.astype('float32')

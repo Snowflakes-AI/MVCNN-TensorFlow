@@ -6,7 +6,7 @@ import queue
 import threading
 import globals as g_
 from concurrent.futures import ThreadPoolExecutor
-from functools import partial
+from functools import partialmethod
 
 W = H = 256
 
@@ -57,13 +57,13 @@ class Shape:
     def crop_random(self, size=(227,227)):
         w, h = self.views.shape[1], self.views.shape[2]
         wn, hn = size
-        views = np.zeros((self.V, w, h, 3))
+        views = np.zeros((self.V, wn, hn, 3))
         for i in range(self.V):
             left = random.randrange(0, w - wn)
             top = random.randrange(0, h - hn)
             right = left + wn
             bottom = top + hn
-            views[i, ...] = self.view[i, left:right, top:bottom, :]
+            views[i, ...] = self.views[i, left:right, top:bottom, :]
 
         self.views = views
 
@@ -124,6 +124,7 @@ class Dataset:
         if self.subtract_mean:
             s.subtract_mean()
         return s
+    _random_load_shape = partialmethod(_load_shape, center_crop=False)
 
     def _batches_fast(self, listfiles, batch_size, center_crop=True):
         subtract_mean = self.subtract_mean
@@ -134,8 +135,10 @@ class Dataset:
             with ThreadPoolExecutor(max_workers=16) as pool:
                 for i in range(0, n, batch_size):
                     sub = listfiles[i: i + batch_size] if i < n-1 else [listfiles[-1]]
-                    load_shape = partial(self._load_shape, center_crop=center_crop)
-                    shapes = list(pool.map(self._load_shape, sub))
+                    if center_crop == True:
+                        shapes = list(pool.map(self._load_shape, sub))
+                    else:
+                        shapes = list(pool.map(self._random_load_shape, sub))
                     views = np.array([s.views for s in shapes])
                     labels = np.array([s.label for s in shapes])
                     q.put((views, labels))

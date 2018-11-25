@@ -138,10 +138,10 @@ def _fc(name, in_, outsize, dropout=1.0, reuse=False):
     print(name, fc.get_shape().as_list())
     return fc
     
-def _softmax_likelihood(name, in_, eps=1e-5, sig=1e-2, threshold=0.0):
+def _softmax_likelihood(name, in_, eps=1e-5, rho=1e-2, threshold=0.0):
     prob = tf.nn.softmax(in_)
     logy = tf.nn.relu(-tf.log(tf.add(prob, eps)))
-    likelihood = tf.reciprocal(tf.add(tf.reduce_sum(tf.multiply(prob, logy), -1, keepdims=True), sig))
+    likelihood = tf.reciprocal(tf.add(tf.reduce_sum(tf.multiply(prob, logy), -1, keepdims=True), rho))
     
     if threshold > 0.0:
         likelihood = tf.add(likelihood, -threshold)

@@ -23,10 +23,15 @@ class Shape:
 
     def _load_views(self, view_files, V):
         views = []
-        for f in view_files:
+        selection = np.random.random_sample(V) > g_.RANDOM_DROP
+        for ind, f in enumerate(view_files):
             try:
-                im = cv2.imread(f)
-                im = cv2.resize(im, (W, H))
+                if selection[ind] == True:
+                    im = cv2.imread(f)
+                    im = cv2.resize(im, (W, H))
+                else:
+                    im = np.random.random_sample(W*H*3).reshape((W, H, 3)) * 256
+                    im = im.astype(np.int8)
             except cv2.error:
                 print('im error: %s', f)
                 raise

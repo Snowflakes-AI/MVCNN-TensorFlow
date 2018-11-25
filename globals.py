@@ -16,7 +16,7 @@ constants for both training and testing
 BATCH_SIZE = 16
 
 # this must be more than twice the BATCH_SIZE
-INPUT_QUEUE_SIZE = 4 * BATCH_SIZE
+INPUT_QUEUE_SIZE = 6 * BATCH_SIZE
 VIEWPOOL = 'max'
 DEBUG = False
 RANDOM_DROP = 0.0

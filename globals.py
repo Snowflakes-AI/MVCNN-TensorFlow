@@ -19,7 +19,7 @@ BATCH_SIZE = 16
 INPUT_QUEUE_SIZE = 4 * BATCH_SIZE
 VIEWPOOL = 'max'
 DEBUG = False
-IMG_W = IMG_H = 227
+IMG_W = IMG_H = 224
 
 """
 constants for training the model

@@ -493,7 +493,8 @@ def loss(fc8, labels, name='total_loss'):
 def classify(fc8):
     softmax = tf.nn.softmax(fc8)
     y = tf.argmax(softmax, 1)
-    return y
+    score = tf.reduce_max(softmax, 1)
+    return y, score
 
 
 def _add_loss_summaries(total_loss):

@@ -77,7 +77,7 @@ def train(dataset_train, dataset_val, ckptfile='', caffemodel=''):
                 if ind == (num_per_grp-1):
                     aux_losses.append(model.loss(fcs_per_grp, ys_, name='vg%02d_loss'%grp_id))
         train_op = model.train(loss, global_step, data_size)
-        prediction = model.classify(fc8)
+        prediction, _ = model.classify(fc8)
 
         # build the summary operation based on the F colection of Summaries
         summary_op = tf.summary.merge_all()

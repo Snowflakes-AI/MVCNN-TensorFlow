@@ -27,6 +27,8 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 tf.app.flags.DEFINE_string('weights', '',
                             """finetune with a pretrained model""")
+tf.app.flags.DEFINE_string('log_pr_curve', '',
+                            """path to write precision-recall curve""")
 
 np.set_printoptions(precision=3)
 
@@ -50,7 +52,7 @@ def test(dataset, ckptfile):
         fc8, aux_fcs = model.inference_multiview(view_, g_.NUM_CLASSES, keep_prob_)
         loss = model.loss(fc8, y_)
         train_op = model.train(loss, global_step, data_size)
-        prediction = model.classify(fc8)
+        prediction, confidence = model.classify(fc8)
 
         saver = tf.train.Saver(tf.all_variables(), max_to_keep=1000)
 
@@ -63,6 +65,7 @@ def test(dataset, ckptfile):
         step = startstep
 
         predictions = []
+        scores = []
         labels = []
 
         print("Start testing")
@@ -77,8 +80,8 @@ def test(dataset, ckptfile):
                          y_ : batch_y,
                          keep_prob_: 1.0}
 
-            pred, loss_value = sess.run(
-                    [prediction,  loss,],
+            pred, score, loss_value = sess.run(
+                    [prediction,  confidence, loss,],
                     feed_dict=feed_dict)
 
 
@@ -93,12 +96,24 @@ def test(dataset, ckptfile):
                                 FLAGS.batch_size/duration, sec_per_batch))
 
             predictions.extend(pred.tolist())
+            scores.extend(score.tolist())
             labels.extend(batch_y.tolist())
 
         # print labels
         # print predictions
         acc = metrics.accuracy_score(labels, predictions)
         print('acc:', acc*100)
+
+        # print precision & recall
+        prcurve_fname = FLAGS.log_pr_curve.strip()
+        if prcurve_fname:
+            predictions = np.asarray(predictions)
+            scores = np.asarray(scores)
+            labels = np.asarray(labels)
+            y_true = np.zeros_like(labels)
+            y_true[np.where(predictions == labels)] = 1
+            precision, recall, _ = metrics.precision_recall_curve(y_true, scores)
+            np.savetxt(prcurve_fname, (precision, recall), delimiter=',')
 
 
 def main(argv):

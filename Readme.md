@@ -10,7 +10,7 @@ A specific model is implemented:
 
 - CUDA (7.5 up better)
 - TensorFlow (0.10 up better)
-- python 2.7
+- python 3.x
 - Some other python packages
 
 

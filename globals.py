@@ -7,6 +7,7 @@ NUM_VIEWS = 12
 TRAIN_LOL = './data/view/train_lists.txt'
 VAL_LOL = './data/view/val_lists.txt'
 TEST_LOL = './data/view/test_lists.txt'
+NUM_GROUPS = 2
 
 
 """
@@ -15,13 +16,18 @@ constants for both training and testing
 BATCH_SIZE = 16
 
 # this must be more than twice the BATCH_SIZE
-INPUT_QUEUE_SIZE = 4 * BATCH_SIZE
-
+INPUT_QUEUE_SIZE = 6 * BATCH_SIZE
+VIEWPOOL = 'max'
+DEBUG = False
+RANDOM_DROP = 0.0
+IMG_W = IMG_H = 224
 
 """
 constants for training the model
 """
 INIT_LEARNING_RATE = 0.0001
+GRADIENT_CLIPPING_THRESHOLD = 0.0
+CENTER_CROP = False
 
 # sample how many shapes for validation
 # this affects the validation time

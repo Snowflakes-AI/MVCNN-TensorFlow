@@ -1,10 +1,19 @@
-This is a simple implementation of Multi-View CNN (MVCNN) introduced by Su et al. for 3D shape recognition, with TensorFlow. The original paper is here: [Multi-view Convolutional Neural Networks for 3D Shape Recognition](http://vis-www.cs.umass.edu/mvcnn/).
+This is a simple implementation of Multi-View CNN using weighted pooling (MVCNN-Wavg) with entropy-based likelihood estimation in TensorFlow. The baseline Multi-View CNN (MVCNN) is introduced by Su et al., [Multi-view Convolutional Neural Networks for 3D Shape Recognition](http://vis-www.cs.umass.edu/mvcnn/).
+
+```
+@unpublished{Choi2019DAC_MVCNN-Wavg,
+  title={{Context-Aware Convolutional Neural Network over Distributed System in Collaborative Computing}},
+  author={Jinhang Choi and Zeinab Hakimi and Philip W Shin and Jack Sampson and Vijaykrishnan Narayanan},
+  note={Accepted to 56th Design Automation Conference (DAC)},
+  year={2019},
+}
+```
 
 A specific model is implemented:
 
-1. AlexNet
+1. GoogLeNet
 2. 12-view
-3. view-pooling after pool5 layer
+3. max/avg/wavg view-pooling after inception4d layer
 
 # Requirements
 
@@ -32,13 +41,15 @@ The pretrained AlexNet model is split to 3 files because Github has a limitation
 $ ./prepare_pretrained_alexnet.sh
 ```
 
+In case of GoogLeNet, just copy model in pretrained_model folder to your path. 
+
 ## Training
 
 To train at the first time, run
 
 ```
 $ mkdir tmp
-$ python train.py --train_dir=`pwd`/tmp --caffemodel=`pwd`/alexnet_imagenet.npy --learning_rate=0.0001
+$ python train.py --train_dir=`pwd`/tmp --caffemodel=`pwd`/googlenet_imagenet.npy --learning_rate=0.0001
 ```
 
 To fine-tune, run

@@ -26,7 +26,7 @@ class Shape:
         selection = np.random.random_sample(V) > g_.RANDOM_DROP
         for ind, f in enumerate(view_files):
             try:
-                if selection[ind] == True:
+                if g_.RANDOM_DROP == 0 or selection[ind] == True:
                     im = cv2.imread(f)
                     im = cv2.resize(im, (W, H))
                 else:

@@ -76,6 +76,9 @@ def train(dataset_train, dataset_val, ckptfile='', caffemodel=''):
 
                 if ind == (num_per_grp-1):
                     aux_losses.append(model.loss(fcs_per_grp, ys_, name='vg%02d_loss'%grp_id))
+            aux_loss = tf.reduce_mean(aux_losses)
+            loss = tf.add_n([loss, aux_loss])
+
         train_op = model.train(loss, global_step, data_size)
         prediction, _ = model.classify(fc8)
 

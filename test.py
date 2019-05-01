@@ -51,6 +51,28 @@ def test(dataset, ckptfile):
 
         fc8, aux_fcs = model.inference_multiview(view_, g_.NUM_CLASSES, keep_prob_)
         loss = model.loss(fc8, y_)
+        if g_.VIEWPOOL == 'wavg':
+            aux_losses = []
+            num_per_grp = g_.NUM_VIEWS // g_.NUM_GROUPS
+            for i in range(num_per_grp):
+                if i == 0:
+                    ys_ = y_
+                else:
+                    ys_ = tf.concat([ys_, y_], 0)
+
+            for i, aux in enumerate(aux_fcs):
+                grp_id = i // num_per_grp
+                ind = i % num_per_grp
+                if ind == 0:
+                    fcs_per_grp = aux
+                else:
+                    fcs_per_grp = tf.concat([fcs_per_grp, aux], 0)
+
+                if ind == (num_per_grp-1):
+                    aux_losses.append(model.loss(fcs_per_grp, ys_, name='vg%02d_loss'%grp_id))
+            aux_loss = tf.reduce_mean(aux_losses)
+            loss = tf.add_n([loss, aux_loss])
+
         train_op = model.train(loss, global_step, data_size)
         prediction, confidence = model.classify(fc8)
 
